@@ -1,0 +1,25 @@
+# ===== Kredensial & konfigurasi lokal =====
+koneksi.php
+.env
+
+# ===== Upload pengguna =====
+# Isi folder diabaikan, kecuali .htaccess pelindung (blokir eksekusi PHP)
+uploads/*
+!uploads/.htaccess
+
+# ===== Dependensi (kalau nanti memakai Composer / npm) =====
+vendor/
+node_modules/
+
+# ===== Log, backup, dan file sementara =====
+*.log
+*.bak
+backup/
+tmp/
+
+# ===== Editor & sistem operasi =====
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
