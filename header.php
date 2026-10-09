@@ -109,5 +109,4 @@
     </div>
   </div>
 </nav>
-<main>
 <?php endif; ?>
