@@ -1,11 +1,15 @@
 <?php
   // Variabel opsional yang bisa diisi halaman SEBELUM require "header.php":
-  //   $judul      -> judul halaman
-  //   $pakaiChart -> true kalau halaman butuh Chart.js (dashboard, rekap)
-  $judul      = $judul ?? "LaporFasilitas";
-  $pakaiChart = $pakaiChart ?? false;
-  $u          = userLogin();                       // null kalau belum login
-  $halaman    = basename($_SERVER["PHP_SELF"]);
+  //   $judul       -> judul halaman
+  //   $pakaiChart  -> true kalau halaman butuh Chart.js (dashboard, rekap)
+  //   $tanpaNavbar -> true kalau halaman tamu punya navbar sendiri (contoh: index.php)
+  //   $paksaTamu   -> true kalau halaman selalu tampil sebagai tamu walau sudah login (landing)
+  $judul       = $judul ?? "Upkeep";
+  $pakaiChart  = $pakaiChart ?? false;
+  $tanpaNavbar = $tanpaNavbar ?? false;
+  $paksaTamu   = $paksaTamu ?? false;
+  $u           = $paksaTamu ? null : userLogin();   // null = tampilan tamu (tanpa sidebar)
+  $halaman     = basename($_SERVER["PHP_SELF"]);
 
   // halaman turunan ikut menandai menu induknya
   $induk = ["detail.php" => "laporan.php", "edit.php" => "laporan.php"];
@@ -30,11 +34,11 @@
   }
 ?>
 <!DOCTYPE html>
-<html lang="id" class="h-full">
+<html lang="id" class="h-full scroll-smooth">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= e($judul) ?> | LaporFasilitas</title>
+  <title><?= e($judul) ?></title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -60,17 +64,17 @@
   <!-- Overlay untuk sidebar di HP -->
   <div id="overlay" class="fixed inset-0 z-30 hidden bg-slate-900/50 lg:hidden"></div>
 
-  <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-slate-900 text-slate-300 transition-transform duration-200 lg:translate-x-0">
+  <div id="sidebar" class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-slate-900 text-slate-300 transition-transform duration-200 lg:translate-x-0">
     <a href="dashboard.php" class="flex h-14 items-center gap-2.5 border-b border-white/10 px-5 text-white">
-      <span class="flex h-8 w-8 items-center justify-center rounded-md bg-teal-500 text-slate-900"><i data-lucide="wrench" class="h-4 w-4"></i></span>
-      <span class="text-base font-bold tracking-tight">LaporFasilitas</span>
+      <div class="flex h-8 w-8 items-center justify-center rounded-md bg-red-700 text-white"><i data-lucide="wrench" class="h-4 w-4"></i></div>
+      <div class="text-base font-bold tracking-tight">Upkeep</div>
     </a>
 
     <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
       <?php foreach ($menu as [$file, $label, $ikon]): ?>
         <a href="<?= $file ?>"
            class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors
-                  <?= $aktif === $file ? 'bg-teal-500/15 text-teal-300' : 'hover:bg-white/5 hover:text-white' ?>">
+                  <?= $aktif === $file ? 'bg-red-700/20 text-red-300' : 'hover:bg-white/5 hover:text-white' ?>">
           <i data-lucide="<?= $ikon ?>" class="h-4 w-4"></i><?= e($label) ?>
         </a>
       <?php endforeach; ?>
@@ -83,7 +87,7 @@
         <i data-lucide="log-out" class="h-4 w-4"></i> Keluar
       </a>
     </div>
-  </aside>
+  </div>
 
   <div class="flex min-w-0 flex-1 flex-col lg:pl-64">
     <header class="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur lg:px-8">
@@ -93,20 +97,24 @@
       <h1 class="text-base font-semibold"><?= e($judul) ?></h1>
     </header>
 
-    <main class="flex-1 p-4 lg:p-8">
+    <div class="flex-1 p-4 lg:p-8">
 
 <?php else: ?>
 <!-- Tampilan tamu (landing, login, register) -->
+<?php if (!$tanpaNavbar): ?>
 <nav class="border-b border-slate-200 bg-white">
   <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
     <a href="index.php" class="flex items-center gap-2.5 font-bold tracking-tight">
-      <span class="flex h-8 w-8 items-center justify-center rounded-md bg-teal-600 text-white"><i data-lucide="wrench" class="h-4 w-4"></i></span>
-      LaporFasilitas
+      <div class="flex h-8 w-8 items-center justify-center rounded-md bg-red-700 text-white"><i data-lucide="wrench" class="h-4 w-4"></i></div>
+      Upkeep
     </a>
     <div class="flex items-center gap-2 text-sm font-semibold">
       <a href="login.php" class="rounded-md px-3 py-1.5 text-slate-700 hover:bg-slate-100">Masuk</a>
-      <a href="register.php" class="rounded-md bg-teal-600 px-3 py-1.5 text-white hover:bg-teal-700">Daftar</a>
+      <a href="register.php" class="rounded-md bg-red-700 px-3 py-1.5 text-white hover:bg-red-800">Daftar</a>
     </div>
   </div>
 </nav>
+<?php endif; ?>
+
+  <div>
 <?php endif; ?>

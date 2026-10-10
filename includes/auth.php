@@ -27,7 +27,7 @@ function wajibAdmin() {
   }
 }
 
-function wajibTamu() {                    // untuk login.php & register.php
+function wajibTamu() {
   if (userLogin()) redirect("dashboard.php");
 }
 

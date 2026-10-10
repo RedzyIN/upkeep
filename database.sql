@@ -1,8 +1,8 @@
 -- LaporFasilitas Kampus
 -- Cara pakai: import file ini lewat phpMyAdmin (tab Import)
 
-CREATE DATABASE IF NOT EXISTS db_lapor_fasilitas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE db_lapor_fasilitas;
+CREATE DATABASE IF NOT EXISTS db_upkeep; CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE db_upkeep;
 
 DROP TABLE IF EXISTS riwayat_status;
 DROP TABLE IF EXISTS laporan;
@@ -16,6 +16,7 @@ CREATE TABLE users (
   email      VARCHAR(100) NOT NULL UNIQUE,
   password   VARCHAR(255) NOT NULL,
   role       ENUM('user','admin') NOT NULL DEFAULT 'user',
+  tipe       ENUM('mahasiswa','dosen','staf') NOT NULL DEFAULT 'mahasiswa' AFTER role;
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -36,8 +37,8 @@ CREATE TABLE laporan (
   lokasi_id     INT NOT NULL,
   judul         VARCHAR(150) NOT NULL,
   deskripsi     TEXT NOT NULL,
-  foto          VARCHAR(100) NULL,        -- foto kerusakan (dari pelapor)
-  foto_selesai  VARCHAR(100) NULL,        -- foto setelah diperbaiki (dari admin)
+  foto          VARCHAR(130) NULL,        -- foto kerusakan (dari pelapor)
+  foto_selesai  VARCHAR(130) NULL,        -- foto setelah diperbaiki (dari admin)
   prioritas     ENUM('rendah','sedang','tinggi') NOT NULL DEFAULT 'sedang',
   status        ENUM('dilaporkan','diproses','selesai') NOT NULL DEFAULT 'dilaporkan',
   catatan_admin TEXT NULL,
@@ -82,3 +83,5 @@ INSERT INTO laporan (user_id, kategori_id, lokasi_id, judul, deskripsi, priorita
 
 INSERT INTO riwayat_status (laporan_id, status, catatan)
 SELECT id, 'dilaporkan', 'Laporan diterima' FROM laporan;
+
+ALTER TABLE users ADD tipe ENUM('mahasiswa','dosen','staf') NOT NULL DEFAULT 'mahasiswa' AFTER role;
