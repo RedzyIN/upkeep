@@ -1,26 +1,48 @@
 // app.js - JavaScript yang dipakai di SEMUA halaman (dimuat oleh footer.php)
 lucide.createIcons();
 
-// 2) Sidebar di HP (hanya ada di halaman setelah login)
+// 2) Sidebar: di desktop = tutup/buka, di HP = geser masuk (drawer)
+const root    = document.documentElement;
 const sidebar = document.getElementById("sidebar");
 const overlay = document.getElementById("overlay");
 const btnMenu = document.getElementById("btnMenu");
-
-function bukaSidebar() {
-  sidebar.classList.remove("-translate-x-full");   // geser sidebar masuk ke layar
-  overlay.classList.remove("hidden");              // tampilkan latar gelap
+const desktop = () => window.matchMedia("(min-width: 1024px)").matches;
+ 
+function drawer(buka) {                            // khusus HP
+  sidebar.classList.toggle("-translate-x-full", !buka);
+  overlay.classList.toggle("hidden", !buka);
 }
-
-function tutupSidebar() {
-  sidebar.classList.add("-translate-x-full");      // geser sidebar keluar layar
-  overlay.classList.add("hidden");
-}
-
+ 
 if (btnMenu) {                                     // di halaman tamu tidak ada tombol menu
-  btnMenu.addEventListener("click", bukaSidebar);
-  overlay.addEventListener("click", tutupSidebar);
+  btnMenu.addEventListener("click", () => {
+    if (desktop()) {
+      const tutup = root.classList.toggle("sidebar-tutup");
+      try { localStorage.setItem("sidebarTutup", tutup ? "1" : "0"); } catch (e) {}   // ingat pilihan
+    } else {
+      drawer(sidebar.classList.contains("-translate-x-full"));
+    }
+  });
+  overlay.addEventListener("click", () => drawer(false));
 }
 
+// 2b) Menu profil di topbar (klik avatar -> muncul Profil Saya & Keluar)
+const btnProfil  = document.getElementById("btnProfil");
+const menuProfil = document.getElementById("menuProfil");
+ 
+function tutupProfil() {
+  menuProfil.classList.add("hidden");
+  btnProfil.setAttribute("aria-expanded", "false");
+}
+ 
+if (btnProfil) {
+  btnProfil.addEventListener("click", (e) => {
+    e.stopPropagation();                           // supaya tidak langsung tertutup oleh klik dokumen
+    const terbuka = menuProfil.classList.toggle("hidden") === false;
+    btnProfil.setAttribute("aria-expanded", String(terbuka));
+  });
+  document.addEventListener("click", (e) => { if (!menuProfil.contains(e.target)) tutupProfil(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") tutupProfil(); });
+}
 
 // 3) Toast (notifikasi kecil di pojok kanan atas)
 const Toast = Swal.mixin({
