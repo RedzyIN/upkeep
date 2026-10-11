@@ -1,110 +1,290 @@
+
 <?php
-  // =====================================================================
-  // laporan.php - Daftar laporan kerusakan
-  //   Admin   : melihat SEMUA laporan
-  //   Pelapor : hanya melihat laporan miliknya sendiri
-  //
-  // Urutan isi file ini:
-  //   1. Siapkan halaman & cek login
-  //   2. Baca filter dari URL
-  //   3. Ambil data laporan
-  //   4. Hitung info halaman
-  //   5. Siapkan tab status & pembuat link
-  //   6. Tampilan HTML
-  // =====================================================================
+require "../init.php";
 
+wajibLogin();
 
-  // ---------- 1. Siapkan halaman & cek login ----------
-  require "../init.php";
-  require "../data/dummy.php";
-  previewLogin();                 // DUMMY: hapus baris ini saat login sungguhan sudah jadi
-  wajibLogin();
+$u = userLogin();
+$admin = isAdmin();
 
-  $u     = userLogin();           // data pengguna yang sedang login
-  $admin = isAdmin();             // true kalau yang login adalah admin
+// --------------------------------------------------
+// 1. Baca dan validasi filter dari URL
+// --------------------------------------------------
 
+$statusBoleh = ["dilaporkan", "diproses", "selesai"];
+$prioritasBoleh = ["rendah", "sedang", "tinggi"];
 
-  // ---------- 2. Baca filter dari URL ----------
-  // Contoh URL: laporan.php?status=selesai&kategori=2&prioritas=tinggi&hal=2
-  // Nilai dari URL tidak boleh dipercaya begitu saja, jadi dicek dulu.
+$status = $_GET["status"] ?? "";
+if (!in_array($status, $statusBoleh, true)) {
+    $status = "";
+}
 
-  $statusBoleh    = ["dilaporkan", "diproses", "selesai"];
-  $prioritasBoleh = ["rendah", "sedang", "tinggi"];
-
-  $status = $_GET["status"] ?? "";
-  if (!in_array($status, $statusBoleh, true)) {
-    $status = "";                 // tidak valid -> anggap tanpa filter
-  }
-
-  $prioritas = $_GET["prioritas"] ?? "";
-  if (!in_array($prioritas, $prioritasBoleh, true)) {
+$prioritas = $_GET["prioritas"] ?? "";
+if (!in_array($prioritas, $prioritasBoleh, true)) {
     $prioritas = "";
-  }
+}
 
-  $kategori = (int) ($_GET["kategori"] ?? 0);      // 0 = semua kategori
-  $hal      = max(1, (int) ($_GET["hal"] ?? 1));   // nomor halaman, minimal 1
-  $per      = 10;                                  // jumlah baris per halaman
+$kategori = max(0, (int) ($_GET["kategori"] ?? 0));
+$hal = max(1, (int) ($_GET["hal"] ?? 1));
+$per = 10;
 
-  // true kalau ada minimal satu filter aktif (untuk tombol Reset & tampilan kosong)
-  $adaFilter = $status !== "" || $prioritas !== "" || $kategori > 0;
+// Batasi panjang pencarian.
+$q = trim($_GET["q"] ?? "");
+$q = mb_substr($q, 0, 100);
 
+$adaFilter = (
+    $status !== "" ||
+    $prioritas !== "" ||
+    $kategori > 0 ||
+    $q !== ""
+);
 
-  // ---------- 3. Ambil data laporan ----------
-  $filter = ["status" => $status, "kategori" => $kategori, "prioritas" => $prioritas];
-  $hasil  = dataLaporanList($u["id"], $admin, $filter, $hal, $per);   // DUMMY: nanti query database
+// --------------------------------------------------
+// 2. Ambil kategori dari database
+// --------------------------------------------------
 
-  $daftar = $hasil["rows"];       // baris laporan untuk halaman ini
-  $total  = $hasil["total"];      // jumlah laporan yang cocok dengan filter
-  $hitung = $hasil["hitung"];     // jumlah laporan per status (angka di tab)
+$stmtKategori = $pdo->query(
+    "SELECT id, nama FROM kategori ORDER BY nama ASC"
+);
 
-  $kategoriList = dataKategoriList();   // DUMMY: nanti SELECT dari tabel kategori
+$kategoriList = [];
 
+foreach ($stmtKategori->fetchAll(PDO::FETCH_ASSOC) as $row) {
+    $kategoriList[(int) $row["id"]] = $row["nama"];
+}
 
-  // ---------- 4. Hitung info halaman ----------
-  $jumlahHal = max(1, (int) ceil($total / $per));   // total halaman
+// Jika kategori yang diminta tidak tersedia, nonaktifkan filter.
+if ($kategori > 0 && !array_key_exists($kategori, $kategoriList)) {
+    $kategori = 0;
+}
 
-  if ($total > 0) {
-    $dari = ($hal - 1) * $per + 1;                  // nomor laporan pertama di halaman ini
-  } else {
-    $dari = 0;
-  }
-  $sampai = min($hal * $per, $total);               // nomor laporan terakhir di halaman ini
+// --------------------------------------------------
+// 3. Siapkan kondisi SQL
+// --------------------------------------------------
 
+$where = [];
+$params = [];
 
-  // ---------- 5. Tab status & pembuat link ----------
-  $tabStatus = [
-    ["kode" => "",           "label" => "Semua",    "jumlah" => $hitung["semua"]],
-    ["kode" => "dilaporkan", "label" => "Menunggu", "jumlah" => $hitung["dilaporkan"]],
-    ["kode" => "diproses",   "label" => "Diproses", "jumlah" => $hitung["diproses"]],
-    ["kode" => "selesai",    "label" => "Selesai",  "jumlah" => $hitung["selesai"]],
-  ];
+// User hanya dapat melihat laporan miliknya.
+// Admin dapat melihat seluruh laporan.
+if (!$admin) {
+    $where[] = "l.user_id = :user_id";
+    $params[":user_id"] = (int) $u["id"];
+}
 
-  // Membuat alamat laporan.php lengkap dengan filternya.
-  // Bagian yang kosong dibuang supaya URL tetap rapi. Contoh:
-  //   linkLaporan("selesai", 0, "", 2)  ->  laporan.php?status=selesai&hal=2
-  function linkLaporan($status, $kategori, $prioritas, $hal = 0) {
+if ($status !== "") {
+    $where[] = "l.status = :status";
+    $params[":status"] = $status;
+}
+
+if ($prioritas !== "") {
+    $where[] = "l.prioritas = :prioritas";
+    $params[":prioritas"] = $prioritas;
+}
+
+if ($kategori > 0) {
+    $where[] = "l.kategori_id = :kategori_id";
+    $params[":kategori_id"] = $kategori;
+}
+
+// Pencarian berdasarkan judul, deskripsi, lokasi,
+// kategori, atau nama pelapor.
+if ($q !== "") {
+    $where[] = "(
+        l.judul LIKE :cari_judul
+        OR l.deskripsi LIKE :cari_deskripsi
+        OR lok.nama LIKE :cari_lokasi
+        OR k.nama LIKE :cari_kategori
+        OR u.nama LIKE :cari_pelapor
+    )";
+
+    $kataCari = "%" . $q . "%";
+
+    $params[":cari_judul"] = $kataCari;
+    $params[":cari_deskripsi"] = $kataCari;
+    $params[":cari_lokasi"] = $kataCari;
+    $params[":cari_kategori"] = $kataCari;
+    $params[":cari_pelapor"] = $kataCari;
+}
+
+$whereSql = $where
+    ? "WHERE " . implode(" AND ", $where)
+    : "";
+
+// --------------------------------------------------
+// 4. Hitung jumlah laporan sesuai filter
+// --------------------------------------------------
+
+$sqlTotal = "
+    SELECT COUNT(*)
+    FROM laporan l
+    JOIN kategori k ON k.id = l.kategori_id
+    JOIN lokasi lok ON lok.id = l.lokasi_id
+    JOIN users u ON u.id = l.user_id
+    $whereSql
+";
+
+$stmtTotal = $pdo->prepare($sqlTotal);
+$stmtTotal->execute($params);
+
+$total = (int) $stmtTotal->fetchColumn();
+
+$jumlahHal = max(1, (int) ceil($total / $per));
+
+// Jika nomor halaman melebihi halaman terakhir,
+// arahkan kembali ke halaman terakhir yang tersedia.
+$hal = min($hal, $jumlahHal);
+$offset = ($hal - 1) * $per;
+
+// --------------------------------------------------
+// 5. Ambil laporan dari database
+// --------------------------------------------------
+
+$sqlLaporan = "
+    SELECT
+        l.id,
+        l.judul,
+        l.deskripsi,
+        l.prioritas,
+        l.status,
+        l.created_at AS tanggal,
+        l.user_id,
+        k.id AS kategori_id,
+        k.nama AS kategori,
+        lok.nama AS lokasi,
+        u.nama AS pelapor
+    FROM laporan l
+    JOIN kategori k ON k.id = l.kategori_id
+    JOIN lokasi lok ON lok.id = l.lokasi_id
+    JOIN users u ON u.id = l.user_id
+    $whereSql
+    ORDER BY l.created_at DESC, l.id DESC
+    LIMIT :limit OFFSET :offset
+";
+
+$stmtLaporan = $pdo->prepare($sqlLaporan);
+
+// Parameter filter.
+foreach ($params as $nama => $nilai) {
+    $stmtLaporan->bindValue($nama, $nilai);
+}
+
+// LIMIT dan OFFSET harus berupa integer.
+$stmtLaporan->bindValue(":limit", $per, PDO::PARAM_INT);
+$stmtLaporan->bindValue(":offset", $offset, PDO::PARAM_INT);
+
+$stmtLaporan->execute();
+
+$daftar = $stmtLaporan->fetchAll(PDO::FETCH_ASSOC);
+
+// --------------------------------------------------
+// 6. Hitung angka tab status
+// Angka mengikuti hak akses, tetapi tidak terpengaruh
+// filter status, kategori, prioritas, atau pencarian.
+// --------------------------------------------------
+
+$sqlHitung = "
+    SELECT
+        COUNT(*) AS semua,
+        COALESCE(SUM(status = 'dilaporkan'), 0) AS dilaporkan,
+        COALESCE(SUM(status = 'diproses'), 0) AS diproses,
+        COALESCE(SUM(status = 'selesai'), 0) AS selesai
+    FROM laporan
+";
+
+if (!$admin) {
+    $sqlHitung .= " WHERE user_id = :user_id";
+    $stmtHitung = $pdo->prepare($sqlHitung);
+    $stmtHitung->execute([":user_id" => (int) $u["id"]]);
+} else {
+    $stmtHitung = $pdo->query($sqlHitung);
+}
+
+$hitung = $stmtHitung->fetch(PDO::FETCH_ASSOC);
+
+foreach ($hitung as $key => $nilai) {
+    $hitung[$key] = (int) $nilai;
+}
+
+// --------------------------------------------------
+// 7. Informasi pagination
+// --------------------------------------------------
+
+$dari = $total > 0 ? $offset + 1 : 0;
+$sampai = min($offset + $per, $total);
+
+// --------------------------------------------------
+// 8. Tab status dan pembuat link
+// --------------------------------------------------
+
+$tabStatus = [
+    [
+        "kode" => "",
+        "label" => "Semua",
+        "jumlah" => $hitung["semua"]
+    ],
+    [
+        "kode" => "dilaporkan",
+        "label" => "Menunggu",
+        "jumlah" => $hitung["dilaporkan"]
+    ],
+    [
+        "kode" => "diproses",
+        "label" => "Diproses",
+        "jumlah" => $hitung["diproses"]
+    ],
+    [
+        "kode" => "selesai",
+        "label" => "Selesai",
+        "jumlah" => $hitung["selesai"]
+    ],
+];
+
+function linkLaporan(
+    $status,
+    $kategori,
+    $prioritas,
+    $hal = 0,
+    $q = ""
+) {
     $param = [];
-    if ($status !== "")    $param["status"]    = $status;
-    if ($kategori > 0)     $param["kategori"]  = $kategori;
-    if ($prioritas !== "") $param["prioritas"] = $prioritas;
-    if ($hal > 0)          $param["hal"]       = $hal;
 
-    if (count($param) === 0) {
-      return "laporan.php";
+    if ($status !== "") {
+        $param["status"] = $status;
     }
-    return "laporan.php?" . http_build_query($param);
-  }
 
+    if ($kategori > 0) {
+        $param["kategori"] = $kategori;
+    }
 
-  // ---------- 6. Tampilan HTML ----------
-    $judul = "Upkeep";
-    $jsHalaman = ["assets/js/laporan.js", "assets/js/popup_laporan.js"];
+    if ($prioritas !== "") {
+        $param["prioritas"] = $prioritas;
+    }
 
-  // Gaya yang sama dipakai oleh kolom pencarian dan dropdown filter
-  $inp = "rounded-md border border-black/20 bg-white px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/30";
+    if ($q !== "") {
+        $param["q"] = $q;
+    }
 
-  require "../header.php";
+    if ($hal > 0) {
+        $param["hal"] = $hal;
+    }
+
+    return "laporan.php" .
+        ($param ? "?" . http_build_query($param) : "");
+}
+
+// --------------------------------------------------
+// 9. Persiapan tampilan
+// --------------------------------------------------
+
+$judul = "Upkeep";
+$jsHalaman = ["assets/js/laporan.js", "assets/js/popup_laporan.js"];
+
+$inp = "rounded-md border border-black/20 bg-white px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/30";
+
+require "../header.php";
 ?>
+
 
 <!-- ===== Judul halaman ===== -->
 <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
@@ -139,7 +319,7 @@
           $kelasAngka = "bg-black/10";
         }
       ?>
-      <a href="<?= e(linkLaporan($tab["kode"], $kategori, $prioritas)) ?>"
+      <a href="<?= e(linkLaporan($tab["kode"], $kategori, $prioritas, 0, $q)) ?>"
          class="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors <?= $kelasTab ?>">
         <?= e($tab["label"]) ?>
         <span class="rounded-full px-1.5 text-xs tabular-nums <?= $kelasAngka ?>"><?= (int) $tab["jumlah"] ?></span>
@@ -150,11 +330,46 @@
   <!-- ===== Pencarian & filter ===== -->
   <div class="flex flex-wrap items-center gap-3 border-b border-black/5 p-4">
 
-    <!-- Pencarian langsung di tabel (dijalankan app.js lewat atribut data-cari) -->
-    <div class="relative min-w-[200px] flex-1">
-      <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
-      <input type="search" data-cari="#tabelLaporan" placeholder="Cari di halaman ini..." class="<?= $inp ?> w-full pl-9">
-    </div>
+    <!-- Pencarian langsung di tabel (dijalankan app.js lewat atribut data-cari) -->  
+    <form method="get" action="laporan.php"
+        class="relative min-w-[200px] flex-1">
+
+        <i data-lucide="search"
+        class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
+
+        <input
+            type="search"
+            name="q"
+            value="<?= e($q) ?>"
+            placeholder="Cari judul, lokasi, kategori..."
+            aria-label="Cari laporan"
+            class="<?= $inp ?> w-full pl-9 pr-20"
+        >
+
+        <?php if ($q !== ""): ?>
+            <input type="hidden" name="q" value="<?= e($q) ?>">
+        <?php endif; ?>
+
+        <?php if ($status !== ""): ?>
+            <input type="hidden" name="status" value="<?= e($status) ?>">
+        <?php endif; ?>
+
+        <?php if ($kategori > 0): ?>
+            <input type="hidden" name="kategori" value="<?= $kategori ?>">
+        <?php endif; ?>
+
+        <?php if ($prioritas !== ""): ?>
+            <input type="hidden" name="prioritas" value="<?= e($prioritas) ?>">
+        <?php endif; ?>
+
+        <button
+            type="submit"
+            class="absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
+        >
+            Cari
+        </button>
+    </form>
+
 
     <!-- Filter kategori & prioritas (terkirim otomatis lewat atribut data-auto-submit) -->
     <form method="get" action="laporan.php" data-auto-submit class="flex flex-wrap items-center gap-3">
@@ -329,7 +544,7 @@
             $kelasHal = "hover:bg-slate-200";
           }
         ?>
-        <a href="<?= e(linkLaporan($status, $kategori, $prioritas, $i)) ?>"
+        <a href="<?= e(linkLaporan($status, $kategori, $prioritas, $i, $q)) ?>"
            class="rounded-md px-3 py-1.5 font-semibold <?= $kelasHal ?>"><?= $i ?></a>
       <?php endfor; ?>
     </nav>
