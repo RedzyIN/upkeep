@@ -59,3 +59,22 @@ function badgePrioritas(string $p): string {
   ][$p] ?? "text-slate-600";
   return '<span class="text-xs font-semibold ' . $warna . '">' . e(ucfirst($p)) . '</span>';
 }
+
+/**
+ * Menghapus foto laporan dari folder uploads.
+ * Hanya menerima nama file, bukan path bebas.
+ */
+function hapusFoto(?string $namaFoto): void
+{
+    if ($namaFoto === null || trim($namaFoto) === "") {
+        return;
+    }
+
+    // Cegah path traversal seperti ../../file.php
+    $namaFoto = basename($namaFoto);
+    $pathFoto = __DIR__ . "/uploads/" . $namaFoto;
+
+    if (is_file($pathFoto)) {
+        unlink($pathFoto);
+    }
+}

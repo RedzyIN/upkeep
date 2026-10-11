@@ -499,13 +499,17 @@ require "../header.php";
                 <i data-lucide="eye" class="h-4 w-4"></i><?= $teksLihat ?>
             </button>
 
+                <!-- Edit khusus pelapor, laporan belum diproses -->
+                <?php if ($bolehEdit): ?>
+                    <a
+                        href="edit.php?id=<?= $idLaporan ?>"
+                        class="inline-flex items-center gap-1 rounded-md border border-blue-600 bg-white p-3 font-semibold text-blue-700 transition duration-300 ease-in-out hover:bg-blue-600 hover:text-white"
+                    >
+                        <i data-lucide="pencil" class="h-4 w-4"></i>
+                        Edit
+                    </a>
+                <?php endif; ?>
 
-              <!-- Edit (khusus pelapor, laporan belum diproses) -->
-              <?php if ($bolehEdit): ?>
-                <button type="button" data-popup="lihat" data-mode="edit" data-id="<?= $idLaporan ?>" data-judul="<?= e($r['judul']) ?>" data-lokasi="<?= e($r['lokasi']) ?>" data-kategori="<?= e($r['kategori']) ?>" data-prioritas="<?= e($r['prioritas']) ?>" data-status="<?= e($r['status']) ?>" data-tanggal="<?= e($r['tanggal']) ?>" data-pelapor="<?= e($r['pelapor'] ?? $u['nama'] ?? 'Pelapor') ?>" data-deskripsi="<?= e($r['deskripsi'] ?? '') ?>" class="inline-flex items-center border border-blue-600 rounded-md p-3 gap-1 bg-white font-semibold text-blue-700 hover:text-white hover:bg-blue-600 transition duration-300 ease-in-out">
-                  <i data-lucide="pencil" class="h-4 w-4"></i>Edit
-                </button>
-              <?php endif; ?>
 
               <!-- Hapus / batalkan (konfirmasi muncul lewat app.js, atribut data-konfirmasi) -->
               <?php if ($bolehHapus): ?>
