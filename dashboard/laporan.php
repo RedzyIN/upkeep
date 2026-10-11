@@ -117,7 +117,7 @@
       <i data-lucide="file-down" class="h-4 w-4"></i> Rekap & Export
     </a>
   <?php else: ?>
-    <a href="tambah.php" class="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
+    <a href="tambah_laporan.php" class="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
       <i data-lucide="circle-plus" class="h-4 w-4"></i> Buat Laporan
     </a>
   <?php endif; ?>
@@ -210,7 +210,7 @@
     <?php else: ?>
       <p class="font-semibold">Kamu belum membuat laporan</p>
       <p class="mb-4 text-sm text-slate-600">Lihat sesuatu yang rusak di kampus? Laporkan sekarang.</p>
-      <a href="tambah.php" class="inline-flex rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Buat Laporan</a>
+      <a href="tambah_laporan.php" class="inline-flex rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Buat Laporan</a>
     <?php endif; ?>
   </div>
 

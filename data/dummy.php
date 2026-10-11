@@ -112,3 +112,55 @@ function dataLaporanList(int $userId, bool $admin, array $f, int $hal, int $per)
  
   return ["rows" => array_slice($hasil, ($hal - 1) * $per, $per), "total" => count($hasil), "hitung" => $hitung];
 }
+// Data dummy untuk peringatan laporan serupa.
+// Data ini hanya untuk tahap frontend. Nanti ganti dengan query PDO ke tabel laporan.
+
+function dataLaporanSerupa(int $kategoriId, int $lokasiId): array {
+  $dataDummy = [
+    [
+      "kategori_id" => 3,
+      "lokasi_id" => 2,
+      "judul" => "AC tidak dingin",
+      "status" => "diproses",
+      "tanggal" => "8 Okt 2026",
+      "url" => "detail.php?id=4",
+    ],
+    [
+      "kategori_id" => 3,
+      "lokasi_id" => 2,
+      "judul" => "AC mengeluarkan suara berisik",
+      "status" => "dilaporkan",
+      "tanggal" => "10 Okt 2026",
+      "url" => "detail.php?id=8",
+    ],
+    [
+      "kategori_id" => 1,
+      "lokasi_id" => 1,
+      "judul" => "Lampu ruangan berkedip",
+      "status" => "dilaporkan",
+      "tanggal" => "9 Okt 2026",
+      "url" => "detail.php?id=7",
+    ],
+  ];
+
+  $hasil = [];
+
+  foreach ($dataDummy as $laporan) {
+    // Hanya cocokkan kategori dan lokasi yang sama.
+    // Status selesai tidak dimasukkan ke peringatan.
+    $statusAktif = in_array($laporan["status"], ["dilaporkan", "diproses"], true);
+    $kombinasiSama = $laporan["kategori_id"] === $kategoriId
+      && $laporan["lokasi_id"] === $lokasiId;
+
+    if ($statusAktif && $kombinasiSama) {
+      $hasil[] = [
+        "judul" => $laporan["judul"],
+        "status" => ucfirst($laporan["status"]),
+        "tanggal" => $laporan["tanggal"],
+        "url" => $laporan["url"],
+      ];
+    }
+  }
+
+  return array_slice($hasil, 0, 3);
+}

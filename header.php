@@ -29,7 +29,7 @@
   } elseif ($u) {
     $menu = [
       "Utama" => [["dashboard.php", "Dashboard", "layout-dashboard"],
-                  ["tambah.php",    "Buat Laporan", "circle-plus"],
+                  ["tambah_laporan.php",    "Buat Laporan", "circle-plus"],
                   ["laporan.php",   "Laporan Saya", "clipboard-list"]],
       "Akun"  => [["profil.php",    "Profil Saya", "user-round"],
                   ["bantuan.php",   "Bantuan", "life-buoy"]],
