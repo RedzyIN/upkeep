@@ -620,8 +620,38 @@ require "../header.php";
 
             <div>
                 <p class="mb-1 text-xs text-slate-500">Deskripsi</p>
-                <p id="detailDeskripsi"
-                   class="whitespace-pre-line text-sm leading-relaxed text-slate-700"></p>
+                <p id="detailDeskripsi" class="whitespace-pre-line text-sm leading-relaxed text-slate-700"></p>
+            </div>
+            <!-- Riwayat status laporan -->
+            <div class="border-t border-black/10 pt-4">
+                <div class="mb-4">
+                    <h4 class="font-semibold">Riwayat Status</h4>
+                    <p class="mt-1 text-xs text-slate-500">
+                        Catatan perjalanan laporan sejak dibuat.
+                    </p>
+                </div>
+
+                <!-- Pesan saat riwayat sedang dimuat -->
+                <p id="timelineMemuat" class="text-sm text-slate-500">
+                    Memuat riwayat status...
+                </p>
+
+                <!-- Peringatan untuk data demo -->
+                <div id="timelineDemo"
+                    class="mb-4 hidden rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                    Data demo. Riwayat perubahan status asli belum tersedia.
+                </div>
+
+                <!-- Daftar riwayat akan diisi oleh JavaScript -->
+                <ol id="timelineStatus"
+                    class="relative hidden space-y-5 border-l border-slate-200 pl-5">
+                </ol>
+
+                <!-- Pesan jika riwayat tidak tersedia -->
+                <p id="timelineKosong"
+                class="hidden rounded-md bg-slate-50 p-3 text-sm text-slate-500">
+                    Belum ada riwayat status.
+                </p>
             </div>
         </div>
 
