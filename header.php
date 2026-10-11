@@ -6,7 +6,7 @@
   $judul      = $judul ?? "Upkeep";
   $jejak      = $jejak ?? [[$judul, null]];
   $pakaiChart = $pakaiChart ?? false;
-  $u          = userLogin();                       // null kalau belum login
+  $u          = ($paksaTamu ?? false) ? null : userLogin();                       // null kalau belum login
   $halaman    = basename($_SERVER["PHP_SELF"]);
  
   // halaman turunan ikut menandai menu induknya

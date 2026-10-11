@@ -22,7 +22,7 @@
 
     <div class="flex items-center gap-2 text-sm font-semibold">
       <?php if ($sudahLogin): ?>
-        <a href="dashboard.php" class="rounded-md bg-red-700 px-3 py-2 text-white hover:bg-red-800">Buka Dashboard</a>
+        <a href="dashboard/dashboard.php" class="rounded-md bg-red-700 px-3 py-2 text-white hover:bg-red-800">Buka Dashboard</a>
       <?php else: ?>
         <a href="auth/login.php" class="rounded-md px-3 py-2 text-slate-700 hover:bg-slate-100">Masuk</a>
         <a href="auth/register.php" class="rounded-md bg-red-700 px-3 py-2 text-white hover:bg-red-800">Daftar</a>

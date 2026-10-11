@@ -1,5 +1,5 @@
 <?php
-  $u = userLogin();
+  $u = ($paksaTamu ?? false) ? null : userLogin();
   $f = ambilFlash();      // pesan dari setFlash(), dikirim ke JavaScript lewat atribut data-*
 ?>
     </main>
