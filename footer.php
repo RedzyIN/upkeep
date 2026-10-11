@@ -1,17 +1,21 @@
 <?php
   $u = userLogin();
-  $f = ambilFlash();      // pesan dari setFlash(), tampil sebagai toast
+  $f = ambilFlash();      // pesan dari setFlash(), dikirim ke JavaScript lewat atribut data-*
 ?>
-    </div>
+    </main>
 <?php if ($u): ?>
   </div><!-- /konten -->
 </div><!-- /flex -->
 <?php endif; ?>
 
-  <script src="assets/js/app.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script>
-    lucide.createIcons();
-  </script>
+<?php if ($f): ?>
+  <!-- Pesan flash: dibaca oleh app.js lalu ditampilkan sebagai toast -->
+  <div id="flash" data-tipe="<?= e($f[0]) ?>" data-pesan="<?= e($f[1]) ?>" hidden></div>
+  <?php endif; ?>
+
+  <script src="<?= BASE_URL ?>assets/js/app.js"></script>
+  <?php foreach ($jsHalaman ?? [] as $js): ?>
+  <script src="<?= BASE_URL . e($js) ?>"></script>
+  <?php endforeach; ?>
 </body>
 </html>

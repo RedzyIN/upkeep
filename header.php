@@ -102,18 +102,6 @@
 <?php else: ?>
 <!-- Tampilan tamu (landing, login, register) -->
 <?php if (!$tanpaNavbar): ?>
-<nav class="border-b border-slate-200 bg-white">
-  <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-    <a href="index.php" class="flex items-center gap-2.5 font-bold tracking-tight">
-      <div class="flex h-8 w-8 items-center justify-center rounded-md bg-red-700 text-white"><i data-lucide="wrench" class="h-4 w-4"></i></div>
-      Upkeep
-    </a>
-    <div class="flex items-center gap-2 text-sm font-semibold">
-      <a href="login.php" class="rounded-md px-3 py-1.5 text-slate-700 hover:bg-slate-100">Masuk</a>
-      <a href="register.php" class="rounded-md bg-red-700 px-3 py-1.5 text-white hover:bg-red-800">Daftar</a>
-    </div>
-  </div>
-</nav>
 <?php endif; ?>
 
   <div>

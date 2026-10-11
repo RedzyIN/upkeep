@@ -1,8 +1,8 @@
--- LaporFasilitas Kampus
+-- Upkeep Database
 -- Cara pakai: import file ini lewat phpMyAdmin (tab Import)
 
-CREATE DATABASE IF NOT EXISTS db_upkeep; CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE db_upkeep;
+CREATE DATABASE IF NOT EXISTS db_lapor_fasilitas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE db_lapor_fasilitas;
 
 DROP TABLE IF EXISTS riwayat_status;
 DROP TABLE IF EXISTS laporan;
@@ -15,8 +15,10 @@ CREATE TABLE users (
   nama       VARCHAR(100) NOT NULL,
   email      VARCHAR(100) NOT NULL UNIQUE,
   password   VARCHAR(255) NOT NULL,
-  role       ENUM('user','admin') NOT NULL DEFAULT 'user',
-  tipe       ENUM('mahasiswa','dosen','staf') NOT NULL DEFAULT 'mahasiswa' AFTER role;
+  role       ENUM('user','admin') NOT NULL DEFAULT 'user',      -- hak akses
+  tipe       ENUM('mahasiswa','dosen','tendik') NOT NULL DEFAULT 'mahasiswa',  -- konteks pelapor
+  no_induk   VARCHAR(30)  NULL UNIQUE,                          -- NIM / NIDN / NIP
+  unit       VARCHAR(100) NULL,                                 -- prodi / homebase / unit kerja
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -37,8 +39,8 @@ CREATE TABLE laporan (
   lokasi_id     INT NOT NULL,
   judul         VARCHAR(150) NOT NULL,
   deskripsi     TEXT NOT NULL,
-  foto          VARCHAR(130) NULL,        -- foto kerusakan (dari pelapor)
-  foto_selesai  VARCHAR(130) NULL,        -- foto setelah diperbaiki (dari admin)
+  foto          VARCHAR(100) NULL,        -- foto kerusakan (dari pelapor)
+  foto_selesai  VARCHAR(100) NULL,        -- foto setelah diperbaiki (dari admin)
   prioritas     ENUM('rendah','sedang','tinggi') NOT NULL DEFAULT 'sedang',
   status        ENUM('dilaporkan','diproses','selesai') NOT NULL DEFAULT 'dilaporkan',
   catatan_admin TEXT NULL,
@@ -61,9 +63,9 @@ CREATE TABLE riwayat_status (
 
 -- ===== DATA CONTOH =====
 -- Login demo -> admin: admin@kampus.test / admin123   |   user: mahasiswa@kampus.test / user123
-INSERT INTO users (nama, email, password, role) VALUES
-('Admin Sarpras',  'admin@kampus.test',     '$2y$10$LiTI9wo2sIaRqi1Le1XkbOydtksWdUVn2giZUANN1/RGoWQABR39.', 'admin'),
-('Mahasiswa Demo', 'mahasiswa@kampus.test', '$2y$10$NhWeqSiKokCLL4oXsSEHYO3z50JkBTmYOb8B/YG2OF4yrN.i28ISG', 'user');
+INSERT INTO users (nama, email, password, role, tipe, no_induk, unit) VALUES
+('Admin Sarpras',  'admin@kampus.test',     '$2y$10$LiTI9wo2sIaRqi1Le1XkbOydtksWdUVn2giZUANN1/RGoWQABR39.', 'admin', 'tendik',    'ADM-001',    'Sarana & Prasarana'),
+('Mahasiswa Demo', 'mahasiswa@kampus.test', '$2y$10$NhWeqSiKokCLL4oXsSEHYO3z50JkBTmYOb8B/YG2OF4yrN.i28ISG', 'user',  'mahasiswa', '2024101001', 'Teknik Informatika');
 
 INSERT INTO kategori (nama) VALUES ('Listrik'), ('Air & Sanitasi'), ('AC'), ('Furnitur'), ('Jaringan & WiFi'), ('Kebersihan');
 
@@ -83,5 +85,3 @@ INSERT INTO laporan (user_id, kategori_id, lokasi_id, judul, deskripsi, priorita
 
 INSERT INTO riwayat_status (laporan_id, status, catatan)
 SELECT id, 'dilaporkan', 'Laporan diterima' FROM laporan;
-
-ALTER TABLE users ADD tipe ENUM('mahasiswa','dosen','staf') NOT NULL DEFAULT 'mahasiswa' AFTER role;
