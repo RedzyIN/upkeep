@@ -13,9 +13,9 @@
   <div id="flash" data-tipe="<?= e($f[0]) ?>" data-pesan="<?= e($f[1]) ?>" hidden></div>
   <?php endif; ?>
 
-  <script src="<?= BASE_URL ?>assets/js/app.js"></script>
+  <script src="<?= 'BASE_URL' ?>assets/js/app.js"></script>
   <?php foreach ($jsHalaman ?? [] as $js): ?>
-  <script src="<?= BASE_URL . e($js) ?>"></script>
+  <script src="<?= 'BASE_URL' . e($js) ?>"></script>
   <?php endforeach; ?>
 </body>
 </html>

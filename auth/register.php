@@ -1,40 +1,185 @@
 <?php
-require_once"../init.php";
+require_once "../init.php";
 wajibTamu();
+
 $judul       = "Upkeep";
-$tanpaNavbar = true;                 // halaman ini hanya berisi kartu form
+$tanpaNavbar = true;
 $jsHalaman   = ["assets/js/auth.js"];
 
-// TODO(backend): proses registrasi menyusul. Alur: kirim form -> status 'menunggu' -> admin menyetujui.
-//   1. Validasi teks (nama, email & no_induk unik, password_hash).
-//   2. Validasi berkas $_FILES["berkas"] di SERVER (cek di JS hanya kenyamanan):
-//        - ["error"] === UPLOAD_ERR_OK, ukuran <= 5 MB
-//        - tipe asli lewat finfo (application/pdf, image/jpeg, image/png), jangan percaya ekstensi
-//        - simpan dengan nama acak (bin2hex(random_bytes(16))), idealnya di luar folder publik
-//      Mahasiswa & dosen: cek fakultas ada di $unm dan jurusan ada di $unm[fakultas].
-//      Field "unit" TIDAK terkirim untuk mereka (disabled); tendik memakai "unit".
-//   3. INSERT role='user', status='menunggu', kolom berkas = nama file tadi.
-//   4. setFlash("Pendaftaran terkirim. Tunggu persetujuan admin.") lalu redirect ke login.php.
-//   5. Halaman admin: daftar akun 'menunggu' + tombol Setujui/Tolak. Berkas dibuka lewat skrip PHP
-//      yang mengecek sesi admin, bukan tautan langsung.
-// Catatan: role TIDAK ada di form. Akun baru selalu 'user'.
 $error = "";
-$old   = ["nama" => "", "email" => "", "tipe" => "", "no_induk" => "", "unit" => "", "fakultas" => "", "jurusan" => ""];   // isi ulang form kalau gagal
 
-// Data fakultas -> daftar jurusan UNM (isi lengkapnya ada di data-unm.php)
+$old = ["nama" => "", "email" => "","tipe" => "", "no_induk" => "", "unit" => "", "fakultas" => "", "jurusan"  => ""];
+
+// Data fakultas dan jurusan UNM.
 $unm = require "../data/data_unm.php";
 
-// Aturan dari kode lama, TIDAK diubah: fakultas & jurusan hanya untuk mahasiswa dan dosen.
-// Di sini dipakai untuk kondisi AWAL saja (form diisi ulang setelah error).
-// Saat pengguna memilih tipe, script di bawah halaman yang menampilkan/menyembunyikannya
-// dengan aturan yang sama, karena PHP hanya berjalan sekali di server.
-$tampilFakultas = ($old["tipe"] === "mahasiswa" || $old["tipe"] === "dosen");
-// Input file tidak bisa diisi ulang oleh PHP: kalau validasi gagal, pengguna memilih berkas lagi.
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    csrfCek();
+
+    // Ambil data dan pertahankan isian jika validasi gagal.
+    foreach (array_keys($old) as $kolom) {
+        $old[$kolom] = trim((string) ($_POST[$kolom] ?? ""));
+    }
+
+    $nama       = $old["nama"];
+    $email      = strtolower($old["email"]);
+    $tipe       = $old["tipe"];
+    $noInduk    = $old["no_induk"];
+    $unitInput  = $old["unit"];
+    $fakultas   = $old["fakultas"];
+    $jurusan    = $old["jurusan"];
+
+    $password   = $_POST["password"] ?? "";
+    $konfirmasi = $_POST["konfirmasi"] ?? "";
+
+    // 1. Validasi nama.
+    if ($nama === "" || mb_strlen($nama) > 100) {
+        $error = "Nama wajib diisi dan maksimal 100 karakter.";
+    }
+
+    // 2. Validasi email.
+    elseif (
+        strlen($email) > 100 ||
+        !filter_var($email, FILTER_VALIDATE_EMAIL)
+    ) {
+        $error = "Masukkan alamat email yang valid.";
+    }
+
+    // 3. Tipe pengguna harus sesuai pilihan yang diizinkan.
+    elseif (!in_array($tipe, ["mahasiswa", "dosen", "tendik"], true)) {
+        $error = "Pilih tipe pengguna yang valid.";
+    }
+
+    // 4. Validasi nomor induk.
+    elseif (!preg_match('/^[0-9A-Za-z.-]{5,30}$/', $noInduk)) {
+        $error = "Nomor induk harus berisi 5–30 karakter berupa huruf, angka, titik, atau strip.";
+    }
+
+    // 5. Mahasiswa dan dosen harus memilih fakultas dan jurusan.
+    elseif (in_array($tipe, ["mahasiswa", "dosen"], true)) {
+        if (
+            $fakultas === "" ||
+            !isset($unm[$fakultas]) ||
+            !is_array($unm[$fakultas]) ||
+            !in_array($jurusan, $unm[$fakultas], true)
+        ) {
+            $error = "Pilih fakultas dan jurusan yang valid.";
+        } else {
+            // Database saat ini hanya mempunyai kolom `unit`.
+            $unit = $fakultas . " - " . $jurusan;
+
+            if (mb_strlen($unit) > 100) {
+                $error = "Gabungan fakultas dan jurusan melebihi 100 karakter.";
+            }
+        }
+    }
+
+    // 6. Tenaga kependidikan mengisi unit kerja.
+    if (
+        $error === "" &&
+        $tipe === "tendik"
+    ) {
+        if ($unitInput === "" || mb_strlen($unitInput) > 100) {
+            $error = "Unit kerja wajib diisi dan maksimal 100 karakter.";
+        } else {
+            $unit = $unitInput;
+        }
+    }
+
+    // 7. Validasi password.
+    if ($error === "") {
+        if (strlen($password) < 8) {
+            $error = "Password minimal 8 karakter.";
+        } elseif ($password !== $konfirmasi) {
+            $error = "Konfirmasi password tidak sama.";
+        }
+    }
+
+    if ($error === "") {
+        try {
+            // 8. Periksa apakah email sudah digunakan.
+            $stmt = $pdo->prepare(
+                "SELECT id FROM users WHERE email = :email LIMIT 1"
+            );
+            $stmt->execute(["email" => $email]);
+
+            if ($stmt->fetch()) {
+                $error = "Email sudah terdaftar. Gunakan email lain.";
+            } else {
+                // 9. Periksa apakah nomor induk sudah digunakan.
+                $stmt = $pdo->prepare(
+                    "SELECT id FROM users WHERE no_induk = :no_induk LIMIT 1"
+                );
+                $stmt->execute(["no_induk" => $noInduk]);
+
+                if ($stmt->fetch()) {
+                    $error = "Nomor induk sudah terdaftar.";
+                }
+            }
+
+            if ($error === "") {
+                // 10. Hash password sebelum disimpan.
+                $hashPassword = password_hash(
+                    $password,
+                    PASSWORD_DEFAULT
+                );
+
+                if ($hashPassword === false) {
+                    throw new RuntimeException("Gagal mengamankan password.");
+                }
+
+                // 11. Simpan akun baru dengan role user.
+                // Role tidak diambil dari input pengguna.
+                $stmt = $pdo->prepare(
+                    "INSERT INTO users
+                        (nama, email, password, role, tipe, no_induk, unit)
+                     VALUES
+                        (:nama, :email, :password, 'user', :tipe, :no_induk, :unit)"
+                );
+
+                $stmt->execute([
+                    "nama"     => $nama,
+                    "email"    => $email,
+                    "password" => $hashPassword,
+                    "tipe"     => $tipe,
+                    "no_induk" => $noInduk,
+                    "unit"     => $unit,
+                ]);
+
+                setFlash("success", "Registrasi berhasil. Silakan login.");
+                redirect("login.php");
+            }
+        } catch (PDOException $e) {
+            // Catat detail di log server, bukan ditampilkan kepada pengguna.
+            error_log("Registrasi Upkeep gagal: " . $e->getMessage());
+
+            if ($e->getCode() === "23000") {
+                $error = "Email atau nomor induk sudah digunakan.";
+            } else {
+                $error = "Terjadi kesalahan saat menyimpan akun. Coba lagi.";
+            }
+        } catch (RuntimeException $e) {
+            error_log("Registrasi Upkeep gagal: " . $e->getMessage());
+            $error = "Terjadi kesalahan saat membuat akun. Coba lagi.";
+        }
+    }
+
+    // Gunakan email yang sudah dinormalisasi pada form jika validasi gagal.
+    $old["email"] = $email;
+}
+
+$tampilFakultas = in_array(
+    $old["tipe"],
+    ["mahasiswa", "dosen"],
+    true
+);
 
 $inp = "w-full rounded-md border border-black/20 bg-white px-3 py-2.5 text-sm text-black placeholder:text-black/40 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/30";
 $mata = "absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-md text-black/60 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600";
+
 require_once "../header.php";
 ?>
+
 
 <!-- Halaman = satu kartu form di tengah layar.
     Di HP: kartu memenuhi layar. Di layar >= 640px (sm): kartu di tengah. -->

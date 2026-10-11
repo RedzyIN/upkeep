@@ -1,17 +1,70 @@
 <?php
-  require "../init.php";
-  wajibTamu();                         // yang sudah login langsung diarahkan ke dashboard
-  $judul     = "Masuk";
-  $jsHalaman = ["assets/js/auth.js"];
+require_once "../init.php";
+wajibTamu();
 
-  // TODO(backend): proses login (cek email, password_verify, loginUser, redirect) menyusul.
-  $error = "";                         // pesan error dari proses login
-  $email = "";                         // isi ulang email kalau login gagal
+$judul     = "Masuk";
+$jsHalaman = ["assets/js/auth.js"];
+
+$error = "";
+$email = "";
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    // Pastikan form berasal dari sesi yang benar.
+    csrfCek();
+
+    $email = strtolower(trim((string) ($_POST["email"] ?? "")));
+    $password = $_POST["password"] ?? "";
+
+    if (
+        $email === "" ||
+        strlen($email) > 100 ||
+        !filter_var($email, FILTER_VALIDATE_EMAIL)
+    ) {
+        $error = "Masukkan email yang valid.";
+    } elseif ($password === "") {
+        $error = "Password wajib diisi.";
+    } else {
+        try {
+            // Cari akun berdasarkan email.
+            $stmt = $pdo->prepare(
+                "SELECT id, nama, email, password, role
+                 FROM users
+                 WHERE email = :email
+                 LIMIT 1"
+            );
+
+            $stmt->execute(["email" => $email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Pesan dibuat sama agar tidak membocorkan keberadaan email.
+            if (
+                !$user ||
+                !password_verify($password, $user["password"])
+            ) {
+                $error = "Email atau password salah.";
+            } else {
+                // Buat sesi login dan regenerasi ID sesi.
+                loginUser($user);
+
+                // Perbarui token CSRF setelah login.
+                $_SESSION["csrf"] = bin2hex(random_bytes(32));
+
+                // Arahkan ke dashboard setelah berhasil masuk.
+                redirect(BASE_URL . "dashboard/dashboard.php");
+            }
+        } catch (PDOException $e) {
+            error_log("Login Upkeep gagal: " . $e->getMessage());
+            $error = "Terjadi kesalahan pada server. Coba lagi.";
+        }
+    }
+}
 
 $inp = "w-full rounded-md border border-black/20 bg-white px-3 py-2.5 text-sm text-black placeholder:text-black/40 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/30";
 $mata = "absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-md text-black/60 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600";
-require "../header.php";
+
+require_once "../header.php";
 ?>
+
 
 <section class="flex items-center justify-center p-4 sm:p-8">
 <div class="w-full max-w-md rounded-lg border border-black/10 bg-white p-6 shadow-sm sm:p-8">
@@ -65,7 +118,4 @@ require "../header.php";
 </section>
 
 </div>
-  <script src="assets/js/auth.js">
-    lucide.createIcons();
-  </script>
 <?php require "../footer.php"; ?>
