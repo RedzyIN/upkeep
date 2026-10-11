@@ -1,40 +1,234 @@
 <?php
-// tambah_laporan.php - Form untuk membuat laporan kerusakan.
-// Mengikuti struktur Upkeep: init.php, header.php, footer.php, Tailwind, dan JS per halaman.
 
-require  "../init.php";
+require "../init.php";
 
-// Gunakan rute login yang ada di folder auth/.
+// Halaman ini hanya untuk user/pelapor.
 if (!userLogin()) {
-  setFlash("warning", "Silakan login terlebih dahulu.");
-  redirect("auth/login.php");
+    setFlash("warning", "Silakan login terlebih dahulu.");
+    redirect("../auth/login.php");
 }
 
-// Halaman ini khusus user/pelapor.
 if (isAdmin()) {
-  setFlash("warning", "Halaman Buat Laporan hanya untuk pelapor.");
-  redirect("laporan.php");
+    setFlash("warning", "Halaman Buat Laporan hanya untuk pelapor.");
+    redirect("laporan.php");
+}
+
+// Periksa CSRF sebelum memproses data POST.
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    csrfCek();
 }
 
 $judul = "Buat Laporan";
 $jsHalaman = ["assets/js/tambah.js"];
 
 $errorUmum = "";
-$old = ["judul" => "", "kategori_id" => "", "lokasi_id" => "", "prioritas" => "sedang", "deskripsi" => ""];
+$old = [
+    "judul" => "",
+    "kategori_id" => "",
+    "lokasi_id" => "",
+    "prioritas" => "sedang",
+    "deskripsi" => ""
+];
 
-// Ambil kategori dan lokasi dari database sesuai skema database.sql.
+// Ambil kategori dan lokasi dari database.
 try {
-  $kategoriList = $pdo->query(
-    "SELECT id, nama FROM kategori ORDER BY nama"
-  )->fetchAll(PDO::FETCH_ASSOC);
+    $kategoriList = $pdo->query(
+        "SELECT id, nama FROM kategori ORDER BY nama"
+    )->fetchAll(PDO::FETCH_ASSOC);
 
-  $lokasiList = $pdo->query(
-    "SELECT id, nama FROM lokasi ORDER BY nama"
-  )->fetchAll(PDO::FETCH_ASSOC);
+    $lokasiList = $pdo->query(
+        "SELECT id, nama FROM lokasi ORDER BY nama"
+    )->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
-  $kategoriList = [];
-  $lokasiList = [];
-  $errorUmum = "Data kategori atau lokasi belum bisa dimuat. Periksa koneksi database.";
+    $kategoriList = [];
+    $lokasiList = [];
+    $errorUmum = "Kategori atau lokasi gagal dimuat. Periksa koneksi database.";
+}
+
+// Proses ketika form dikirim.
+if ($_SERVER["REQUEST_METHOD"] === "POST" && $errorUmum === "") {
+
+    // Ambil kembali input agar tidak hilang ketika validasi gagal.
+    $old["judul"] = trim($_POST["judul"] ?? "");
+    $old["kategori_id"] = trim($_POST["kategori_id"] ?? "");
+    $old["lokasi_id"] = trim($_POST["lokasi_id"] ?? "");
+    $old["prioritas"] = $_POST["prioritas"] ?? "sedang";
+    $old["deskripsi"] = trim($_POST["deskripsi"] ?? "");
+
+    $judulLaporan = $old["judul"];
+    $kategoriId = filter_var(
+        $old["kategori_id"],
+        FILTER_VALIDATE_INT
+    );
+    $lokasiId = filter_var(
+        $old["lokasi_id"],
+        FILTER_VALIDATE_INT
+    );
+    $prioritas = $old["prioritas"];
+    $deskripsi = $old["deskripsi"];
+
+    // Validasi judul.
+    if (
+        mb_strlen($judulLaporan) < 5 ||
+        mb_strlen($judulLaporan) > 150
+    ) {
+        $errorUmum = "Judul harus berisi 5–150 karakter.";
+    }
+
+    // Validasi kategori harus benar-benar ada di database.
+    $kategoriValid = array_map(
+        "intval",
+        array_column($kategoriList, "id")
+    );
+
+    if (
+        $errorUmum === "" &&
+        (
+            $kategoriId === false ||
+            !in_array($kategoriId, $kategoriValid, true)
+        )
+    ) {
+        $errorUmum = "Pilih kategori yang valid.";
+    }
+
+    // Validasi lokasi harus benar-benar ada di database.
+    $lokasiValid = array_map(
+        "intval",
+        array_column($lokasiList, "id")
+    );
+
+    if (
+        $errorUmum === "" &&
+        (
+            $lokasiId === false ||
+            !in_array($lokasiId, $lokasiValid, true)
+        )
+    ) {
+        $errorUmum = "Pilih lokasi yang valid.";
+    }
+
+    // Validasi prioritas berdasarkan ENUM di database.
+    $prioritasBoleh = ["rendah", "sedang", "tinggi"];
+
+    if (
+        $errorUmum === "" &&
+        !in_array($prioritas, $prioritasBoleh, true)
+    ) {
+        $errorUmum = "Prioritas laporan tidak valid.";
+    }
+
+    // Validasi deskripsi.
+    if (
+        $errorUmum === "" &&
+        (
+            mb_strlen($deskripsi) < 20 ||
+            mb_strlen($deskripsi) > 2000
+        )
+    ) {
+        $errorUmum = "Deskripsi harus berisi 20–2000 karakter.";
+    }
+
+    // Upload foto hanya jika semua input teks valid.
+    $namaFoto = null;
+
+    if ($errorUmum === "") {
+        $fileFoto = $_FILES["foto"] ?? [
+            "error" => UPLOAD_ERR_NO_FILE
+        ];
+
+        [$uploadBerhasil, $hasilUpload] = uploadFoto(
+            $fileFoto,
+            "laporan"
+        );
+
+        if (!$uploadBerhasil) {
+            $errorUmum = $hasilUpload;
+        } else {
+            $namaFoto = $hasilUpload;
+        }
+    }
+
+    // Simpan laporan dan status awal dalam satu transaksi.
+    if ($errorUmum === "") {
+        try {
+            $pdo->beginTransaction();
+
+            $sqlLaporan = "
+                INSERT INTO laporan
+                    (
+                        user_id,
+                        kategori_id,
+                        lokasi_id,
+                        judul,
+                        deskripsi,
+                        foto,
+                        prioritas,
+                        status
+                    )
+                VALUES
+                    (
+                        :user_id,
+                        :kategori_id,
+                        :lokasi_id,
+                        :judul,
+                        :deskripsi,
+                        :foto,
+                        :prioritas,
+                        'dilaporkan'
+                    )
+            ";
+
+            $stmt = $pdo->prepare($sqlLaporan);
+            $stmt->execute([
+                ":user_id" => (int) userLogin()["id"],
+                ":kategori_id" => $kategoriId,
+                ":lokasi_id" => $lokasiId,
+                ":judul" => $judulLaporan,
+                ":deskripsi" => $deskripsi,
+                ":foto" => $namaFoto,
+                ":prioritas" => $prioritas
+            ]);
+
+            $idLaporan = (int) $pdo->lastInsertId();
+
+            // Catat status awal untuk timeline laporan.
+            $stmtRiwayat = $pdo->prepare("
+                INSERT INTO riwayat_status
+                    (laporan_id, status, catatan)
+                VALUES
+                    (:laporan_id, 'dilaporkan', :catatan)
+            ");
+
+            $stmtRiwayat->execute([
+                ":laporan_id" => $idLaporan,
+                ":catatan" => "Laporan diterima"
+            ]);
+
+            $pdo->commit();
+
+            setFlash(
+                "success",
+                "Laporan berhasil dibuat."
+            );
+
+            redirect("laporan.php");
+
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            // Hapus foto jika penyimpanan database gagal.
+            if ($namaFoto !== null) {
+                hapusFoto($namaFoto);
+            }
+
+            // Detail error disimpan di log server, bukan ditampilkan ke user.
+            error_log("Gagal membuat laporan: " . $e->getMessage());
+
+            $errorUmum = "Laporan gagal disimpan. Silakan coba lagi.";
+        }
+    }
 }
 
 $inp = "w-full rounded-md border border-black/20 bg-white px-3 py-2.5 text-sm text-black placeholder:text-black/40 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/30";
@@ -134,7 +328,7 @@ require "../header.php";
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label class="cursor-pointer rounded-lg border border-black/15 p-3 hover:border-red-600 has-[:checked]:border-red-600 has-[:checked]:bg-red-50">
             <span class="flex items-center gap-2">
-              <input type="radio" name="prioritas" value="rendah" class="accent-red-600">
+              <input type="radio" name="prioritas" value="rendah" <?= $old["prioritas"] === "rendah" ? "checked" : "" ?> class="accent-red-600">
               <span class="text-sm font-semibold">Rendah</span>
             </span>
             <span class="mt-2 block text-xs text-slate-500">Gangguan kecil, masih bisa digunakan.</span>
@@ -142,7 +336,7 @@ require "../header.php";
 
           <label class="cursor-pointer rounded-lg border border-black/15 p-3 hover:border-red-600 has-[:checked]:border-red-600 has-[:checked]:bg-red-50">
             <span class="flex items-center gap-2">
-              <input type="radio" name="prioritas" value="sedang" checked class="accent-red-600">
+              <input type="radio" name="prioritas" value="sedang" <?= $old["prioritas"] === "sedang" ? "checked" : "" ?> class="accent-red-600">
               <span class="text-sm font-semibold">Sedang</span>
             </span>
             <span class="mt-2 block text-xs text-slate-500">Mengganggu kegiatan, tetapi masih bisa diatasi.</span>
@@ -150,7 +344,7 @@ require "../header.php";
 
           <label class="cursor-pointer rounded-lg border border-black/15 p-3 hover:border-red-600 has-[:checked]:border-red-600 has-[:checked]:bg-red-50">
             <span class="flex items-center gap-2">
-              <input type="radio" name="prioritas" value="tinggi" class="accent-red-600">
+              <input type="radio" name="prioritas" value="tinggi" <?= $old["prioritas"] === "tinggi" ? "checked" : "" ?> class="accent-red-600">
               <span class="text-sm font-semibold">Tinggi</span>
             </span>
             <span class="mt-2 block text-xs text-slate-500">Menghambat kegiatan atau berpotensi membahayakan.</span>
