@@ -21,7 +21,7 @@ $jsHalaman = ["assets/js/import.js"];
 require "../header.php";
 ?>
 
-<div class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+<div class="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
 
     <!-- Header halaman -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

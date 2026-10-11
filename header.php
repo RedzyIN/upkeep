@@ -8,6 +8,7 @@
   $pakaiChart = $pakaiChart ?? false;
   $u          = ($paksaTamu ?? false) ? null : userLogin();                       // null kalau belum login
   $halaman    = basename($_SERVER["PHP_SELF"]);
+  $tanpaNavbar = $tanpaNavbar ?? false;
  
   // halaman turunan ikut menandai menu induknya
   $induk = ["detail.php" => "laporan.php", "edit.php" => "laporan.php"];
@@ -57,6 +58,8 @@
     tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Instrument Sans"', 'system-ui', 'sans-serif'] } } } };
   </script>
   <style>
+    :focus-visible { outline: 2px solid #dc2626; outline-offset: 2px; }
+    #sidebar :focus-visible { outline-color: #fff; }
     #sidebar, #konten { transition: transform .2s ease, padding .2s ease; }
     @media (min-width: 1024px) {
       html.sidebar-tutup #sidebar { transform: translateX(-100%); }
@@ -78,7 +81,7 @@
   <!-- Overlay sidebar di HP -->
   <div id="overlay" class="fixed inset-0 z-30 hidden bg-black/60 lg:hidden"></div>
  
-  <div id="sidebar" class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-black text-slate-200 lg:translate-x-0">
+  <aside id="sidebar" class="fixed inset-y-0 max-w-[85vw] left-0 z-40 flex w-64 -translate-x-full flex-col bg-black text-slate-200 lg:translate-x-0">
     <a href="dashboard.php" class="flex h-14 shrink-0 items-center gap-2.5 border-b border-white/10 px-5 text-white">
       <div class="text-base font-bold tracking-tight">Upkeep</div>
     </a>
@@ -95,7 +98,7 @@
         <?php endforeach; ?>
       <?php endforeach; ?>
     </nav>
-    </div>
+  </aside>
  
   <div id="konten" class="flex min-w-0 flex-1 flex-col lg:pl-64">
  
@@ -138,12 +141,11 @@
       </div>
     </header>
  
-    <div class="flex-1 p-4 lg:p-8">
+    <main id="isi" class="flex-1 p-4 lg:p-8">
 
 <?php else: ?>
 <!-- Tampilan tamu (landing, login, register) -->
-<?php if (!$tanpaNavbar): ?>
-<?php endif; ?>
-
-  <div>
+  <?php if (!$tanpaNavbar): ?>
+  <?php endif; ?>
+  <main id="isi">
 <?php endif; ?>

@@ -32,18 +32,18 @@
     </p>
   </div>
   <?php if ($admin): ?>
-    <a href="laporan.php" class="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
+    <a href="laporan.php" class="inline-flex w-full justify-center items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white sm:w-auto hover:bg-red-700">
       <i data-lucide="clipboard-list" class="h-4 w-4"></i> Lihat Semua Laporan
     </a>
   <?php else: ?>
-    <a href="tambah_laporan.php" class="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
+    <a href="tambah_laporan.php" class="inline-flex w-full justify-center items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white sm:w-auto hover:bg-red-700">
       <i data-lucide="circle-plus" class="h-4 w-4"></i> Buat Laporan
     </a>
   <?php endif; ?>
 </div>
  
 <?php if (!$admin && $data["perlu_rating"] > 0): ?>
-<div class="mb-6 flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+<div class="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
   <i data-lucide="star" class="h-5 w-5 shrink-0"></i>
   <p><?= (int) $data["perlu_rating"] ?> laporanmu sudah selesai dan belum dinilai. <a href="laporan.php?status=selesai" class="font-semibold underline">Beri rating</a></p>
 </div>
@@ -156,7 +156,7 @@
     <div class="px-5 py-12 text-center">
       <p class="font-medium">Belum ada laporan</p>
       <p class="mb-4 text-sm text-slate-500">Lihat sesuatu yang rusak di kampus? Laporkan sekarang.</p>
-      <a href="tambah_laporan.php" class="inline-flex rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Buat Laporan</a>
+      <a href="tambah_laporan.php" class="inline-flex w-full justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white sm:w-auto hover:bg-red-700">Buat Laporan</a>
     </div>
   <?php else: ?>
   <div class="overflow-x-auto">

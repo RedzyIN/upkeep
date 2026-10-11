@@ -113,7 +113,7 @@ $jsHalaman = ["assets/js/export.js"];
 require "../header.php";
 ?>
 
-<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<main class="space-y-6 p-4 md:p-6 lg:px-8 py-8">
 
     <!-- Judul halaman -->
     <div class="mb-6">
@@ -334,8 +334,6 @@ require "../header.php";
         </div>
 
     </section>
-
-</main>
 
 <!-- Library ekspor harus dimuat sebelum export.js. -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
