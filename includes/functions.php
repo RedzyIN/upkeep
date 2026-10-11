@@ -44,9 +44,9 @@ function tglIndo(?string $tgl): string {
 
 function badgeStatus(string $s): string {
   $warna = [
-    "dilaporkan" => "bg-amber-100 text-amber-800 ring-amber-600/20",
-    "diproses"   => "bg-sky-100 text-sky-800 ring-sky-600/20",
-    "selesai"    => "bg-emerald-100 text-emerald-800 ring-emerald-600/20",
+    "dilaporkan" => "bg-amber-100 text-amber-800 border border-yellow-300 rounded-md",
+    "diproses"   => "bg-sky-100 text-sky-800 border border-blue-300 rounded-md",
+    "selesai"    => "bg-emerald-100 text-emerald-800 border border-green-300 rounded-md",
   ][$s] ?? "bg-slate-100 text-slate-700 ring-slate-500/20";
   return '<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ' . $warna . '">' . e(ucfirst($s)) . '</span>';
 }

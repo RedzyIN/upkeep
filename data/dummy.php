@@ -60,3 +60,55 @@ function dataDashboardAdmin(): array {                       // DUMMY
     ],
   ];
 }
+
+// ---------- Daftar LAPORAN (laporan.php) ----------
+// Urutan id sama dengan database.sql: 1 Listrik, 2 Air & Sanitasi, 3 AC, 4 Furnitur, 5 Jaringan & WiFi, 6 Kebersihan
+function dataKategoriList(): array {                         // DUMMY: nanti SELECT id, nama FROM kategori
+  return [1 => "Listrik", 2 => "Air & Sanitasi", 3 => "AC", 4 => "Furnitur", 5 => "Jaringan & WiFi", 6 => "Kebersihan"];
+}
+ 
+// Filter + halaman dikerjakan di sini. Nanti diganti query:  WHERE ... LIMIT ? OFFSET ?
+// Bentuk nilai kembalian ("rows", "total", "hitung") dipertahankan supaya laporan.php tidak perlu diubah.
+function dataLaporanList(int $userId, bool $admin, array $f, int $hal, int $per): array {   // DUMMY
+  $kat = dataKategoriList();
+  //        id, judul,                     lokasi,                    kategori, prioritas, status,       tanggal,      user, pelapor
+  $mentah = [
+    [8,  "Tempat sampah penuh",     "Kantin",                   6, "rendah", "dilaporkan", "2026-10-10", 2, "Mahasiswa Demo"],
+    [7,  "AC bocor ke meja",        "Gedung B - Lab Komputer",  3, "tinggi", "dilaporkan", "2026-10-09", 2, "Mahasiswa Demo"],
+    [9,  "Proyektor tidak menyala", "Gedung A - Ruang 101",     1, "sedang", "diproses",   "2026-10-06", 3, "Rina Putri"],
+    [12, "Stop kontak mati",        "Gedung A - Ruang 201",     1, "tinggi", "dilaporkan", "2026-10-05", 4, "Budi Santoso"],
+    [5,  "Kursi patah",             "Gedung A - Ruang 101",     4, "sedang", "diproses",   "2026-10-02", 2, "Mahasiswa Demo"],
+    [15, "Lampu koridor padam",     "Gedung A - Lantai 2",      1, "sedang", "dilaporkan", "2026-10-02", 3, "Rina Putri"],
+    [10, "Pintu toilet rusak",      "Toilet Lantai 1 Gedung A", 2, "rendah", "selesai",    "2026-09-30", 4, "Budi Santoso"],
+    [4,  "WiFi perpustakaan putus", "Perpustakaan",             5, "tinggi", "diproses",   "2026-09-27", 2, "Mahasiswa Demo"],
+    [11, "Mic masjid berdengung",   "Masjid Kampus",            1, "sedang", "selesai",    "2026-09-22", 3, "Rina Putri"],
+    [3,  "Keran wastafel bocor",    "Toilet Lantai 1 Gedung A", 2, "rendah", "selesai",    "2026-09-16", 2, "Mahasiswa Demo"],
+    [13, "Meja lab goyang",         "Gedung B - Lab Komputer",  4, "rendah", "selesai",    "2026-09-12", 4, "Budi Santoso"],
+    [6,  "Lampu ruangan berkedip",  "Gedung A - Ruang 201",     1, "sedang", "selesai",    "2026-09-08", 2, "Mahasiswa Demo"],
+    [14, "AC perpustakaan mati",    "Perpustakaan",             3, "tinggi", "selesai",    "2026-09-02", 3, "Rina Putri"],
+    [2,  "Stop kontak lab mati",    "Gedung B - Lab Komputer",  1, "tinggi", "selesai",    "2026-08-20", 2, "Mahasiswa Demo"],
+    [1,  "AC tidak dingin",         "Gedung A - Ruang 201",     3, "sedang", "selesai",    "2026-08-02", 2, "Mahasiswa Demo"],
+  ];
+ 
+  $semua = [];
+  foreach ($mentah as $r) {
+    if (!$admin && $r[7] !== $userId) continue;              // user hanya melihat laporannya sendiri
+    $semua[] = [
+      "id" => $r[0], "judul" => $r[1], "lokasi" => $r[2], "kategori_id" => $r[3], "kategori" => $kat[$r[3]],
+      "prioritas" => $r[4], "status" => $r[5], "tanggal" => $r[6], "user_id" => $r[7], "pelapor" => $r[8],
+    ];
+  }
+  usort($semua, fn($a, $b) => [$b["tanggal"], $b["id"]] <=> [$a["tanggal"], $a["id"]]);   // terbaru di atas
+ 
+  // jumlah per status (untuk badge angka di tab)
+  $hitung = ["semua" => count($semua), "dilaporkan" => 0, "diproses" => 0, "selesai" => 0];
+  foreach ($semua as $r) $hitung[$r["status"]]++;
+ 
+  $hasil = array_values(array_filter($semua, function ($r) use ($f) {
+    return ($f["status"] === ""    || $r["status"] === $f["status"])
+        && ($f["prioritas"] === "" || $r["prioritas"] === $f["prioritas"])
+        && ($f["kategori"] === 0   || $r["kategori_id"] === $f["kategori"]);
+  }));
+ 
+  return ["rows" => array_slice($hasil, ($hal - 1) * $per, $per), "total" => count($hasil), "hitung" => $hitung];
+}
