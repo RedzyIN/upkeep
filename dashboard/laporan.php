@@ -98,7 +98,7 @@
 
   // ---------- 6. Tampilan HTML ----------
     $judul = "Upkeep";
-    $jsHalaman = ["assets/js/laporan.js"];
+    $jsHalaman = ["assets/js/laporan.js", "assets/js/popup_laporan.js"];
 
   // Gaya yang sama dipakai oleh kolom pencarian dan dropdown filter
   $inp = "rounded-md border border-black/20 bg-white px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/30";
@@ -261,7 +261,9 @@
         <tr class="hover:bg-slate-50">
 
           <td class="px-5 py-3">
-            <a href="detail.php?id=<?= $idLaporan ?>" class="font-semibold hover:text-red-700"><?= e($r["judul"]) ?></a>
+              <button type="button" data-popup="lihat" data-mode="detail" data-id="<?= $idLaporan ?>" data-judul="<?= e($r['judul']) ?>" data-lokasi="<?= e($r['lokasi']) ?>" data-pelapor="<?= e($r['pelapor'] ?? $u['nama'] ?? 'Pelapor') ?>" data-tanggal="<?= e($r['tanggal']) ?>" data-kategori="<?= e($r['kategori']) ?>" data-prioritas="<?= e($r['prioritas']) ?>" data-status="<?= e($r['status']) ?>" data-deskripsi="<?= e($r['deskripsi'] ?? 'Belum ada deskripsi.') ?>" class="font-semibold hover:text-red-700">
+                  <?= e($r["judul"]) ?>
+              </button>
             <p class="text-xs text-slate-500"><?= e($r["lokasi"]) ?></p>
           </td>
 
@@ -278,15 +280,16 @@
             <div class="flex items-center justify-end gap-3">
 
               <!-- Lihat detail / tangani -->
-              <a href="detail.php?id=<?= $idLaporan ?>" class="inline-flex items-center border border-red-600 rounded-md p-3 gap-1 bg-white font-semibold text-red-700 hover:text-white hover:bg-red-600 transition duration-300 ease-in-out">
+            <button type="button" data-popup="lihat" data-mode="<?= $teksLihat === 'Tangani' ? 'tangani' : 'detail' ?>" data-id="<?= $idLaporan ?>" data-judul="<?= e($r['judul']) ?>" data-lokasi="<?= e($r['lokasi']) ?>" data-pelapor="<?= e($r['pelapor'] ?? $u['nama'] ?? 'Pelapor') ?>" data-tanggal="<?= e($r['tanggal']) ?>" data-kategori="<?= e($r['kategori']) ?>" data-prioritas="<?= e($r['prioritas']) ?>" data-status="<?= e($r['status']) ?>" data-deskripsi="<?= e($r['deskripsi'] ?? 'Belum ada deskripsi.') ?>" class="inline-flex items-center border border-red-600 rounded-md p-3 gap-1 bg-white font-semibold text-red-700 hover:text-white hover:bg-red-600 transition duration-300 ease-in-out">
                 <i data-lucide="eye" class="h-4 w-4"></i><?= $teksLihat ?>
-              </a>
+            </button>
+
 
               <!-- Edit (khusus pelapor, laporan belum diproses) -->
               <?php if ($bolehEdit): ?>
-                <a href="edit.php?id=<?= $idLaporan ?>" class="inline-flex items-center border border-blue-600 rounded-md p-3 gap-1 bg-white font-semibold text-blue-700 hover:text-white hover:bg-blue-600 transition duration-300 ease-in-out">
+                <button type="button" data-popup="lihat" data-mode="edit" data-id="<?= $idLaporan ?>" data-judul="<?= e($r['judul']) ?>" data-lokasi="<?= e($r['lokasi']) ?>" data-kategori="<?= e($r['kategori']) ?>" data-prioritas="<?= e($r['prioritas']) ?>" data-status="<?= e($r['status']) ?>" data-tanggal="<?= e($r['tanggal']) ?>" data-pelapor="<?= e($r['pelapor'] ?? $u['nama'] ?? 'Pelapor') ?>" data-deskripsi="<?= e($r['deskripsi'] ?? '') ?>" class="inline-flex items-center border border-blue-600 rounded-md p-3 gap-1 bg-white font-semibold text-blue-700 hover:text-white hover:bg-blue-600 transition duration-300 ease-in-out">
                   <i data-lucide="pencil" class="h-4 w-4"></i>Edit
-                </a>
+                </button>
               <?php endif; ?>
 
               <!-- Hapus / batalkan (konfirmasi muncul lewat app.js, atribut data-konfirmasi) -->
@@ -335,5 +338,190 @@
 
   <?php endif; ?>
 </section>
+
+<!-- ===== Pop-up laporan ===== -->
+<div id="popupLaporan"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+
+    <div class="w-full max-w-xl rounded-xl border border-black/10 bg-white shadow-xl">
+
+        <!-- Header pop-up -->
+        <div class="flex items-center justify-between border-b border-black/5 p-5">
+            <div>
+                <h3 id="popupJudul" class="text-lg font-bold tracking-tight">
+                    Detail Laporan
+                </h3>
+                <p id="popupSubjudul" class="text-sm text-slate-500">
+                    Informasi laporan kerusakan
+                </p>
+            </div>
+
+            <button type="button"
+                    id="popupTutup"
+                    aria-label="Tutup pop-up"
+                    class="rounded-md p-2 text-slate-500 hover:bg-slate-100">
+                <i data-lucide="x" class="h-5 w-5"></i>
+            </button>
+        </div>
+
+        <!-- Konten detail -->
+        <div id="popupDetail" class="space-y-4 p-5">
+            <div>
+                <p class="text-xs text-slate-500">Judul laporan</p>
+                <p id="detailJudul" class="font-semibold"></p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs text-slate-500">Pelapor</p>
+                    <p id="detailPelapor" class="text-sm font-medium"></p>
+                </div>
+
+                <div>
+                    <p class="text-xs text-slate-500">Tanggal</p>
+                    <p id="detailTanggal" class="text-sm font-medium"></p>
+                </div>
+
+                <div>
+                    <p class="text-xs text-slate-500">Kategori</p>
+                    <p id="detailKategori" class="text-sm font-medium"></p>
+                </div>
+
+                <div>
+                    <p class="text-xs text-slate-500">Prioritas</p>
+                    <p id="detailPrioritas" class="text-sm font-medium"></p>
+                </div>
+
+                <div>
+                    <p class="text-xs text-slate-500">Status</p>
+                    <p id="detailStatus" class="text-sm font-semibold"></p>
+                </div>
+
+                <div>
+                    <p class="text-xs text-slate-500">Lokasi</p>
+                    <p id="detailLokasi" class="text-sm font-medium"></p>
+                </div>
+            </div>
+
+            <div>
+                <p class="mb-1 text-xs text-slate-500">Deskripsi</p>
+                <p id="detailDeskripsi"
+                   class="whitespace-pre-line text-sm leading-relaxed text-slate-700"></p>
+            </div>
+        </div>
+
+        <!-- Form edit pelapor -->
+        <form id="formEdit" class="hidden space-y-4 p-5">
+            <input type="hidden" name="id" id="editId">
+
+            <div>
+                <label for="editJudul"
+                       class="mb-1 block text-sm font-semibold">
+                    Judul laporan
+                </label>
+                <input type="text" name="judul" id="editJudul"
+                       required
+                       class="w-full rounded-md border border-black/20 bg-white px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/30">
+            </div>
+
+            <div>
+                <label for="editLokasi"
+                       class="mb-1 block text-sm font-semibold">
+                    Lokasi
+                </label>
+                <input type="text" name="lokasi" id="editLokasi"
+                       required
+                       class="w-full rounded-md border border-black/20 bg-white px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/30">
+            </div>
+
+            <div>
+                <label for="editKategori"
+                       class="mb-1 block text-sm font-semibold">
+                    Kategori
+                </label>
+                <input type="text" name="kategori" id="editKategori"
+                       required
+                       class="w-full rounded-md border border-black/20 bg-white px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/30">
+            </div>
+
+            <div>
+                <label for="editPrioritas"
+                       class="mb-1 block text-sm font-semibold">
+                    Prioritas
+                </label>
+                <select name="prioritas" id="editPrioritas"
+                        class="w-full rounded-md border border-black/20 bg-white px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/30">
+                    <option value="rendah">Rendah</option>
+                    <option value="sedang">Sedang</option>
+                    <option value="tinggi">Tinggi</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="editDeskripsi"
+                       class="mb-1 block text-sm font-semibold">
+                    Deskripsi
+                </label>
+                <textarea name="deskripsi" id="editDeskripsi" rows="4"
+                          class="w-full rounded-md border border-black/20 bg-white px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/30"></textarea>
+            </div>
+
+            <div class="flex justify-end gap-2 border-t border-black/5 pt-4">
+                <button type="button" data-popup-batal
+                        class="rounded-md border border-black/20 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-100">
+                    Batal
+                </button>
+                <button type="submit"
+                        class="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
+                    Simpan perubahan
+                </button>
+            </div>
+        </form>
+
+        <!-- Form penanganan admin -->
+        <form id="formTangani" class="hidden space-y-4 p-5">
+            <input type="hidden" name="id" id="tanganiId">
+
+            <div>
+                <p class="text-sm text-slate-500">Laporan yang ditangani</p>
+                <p id="tanganiJudul" class="font-semibold"></p>
+            </div>
+
+            <div>
+                <label for="tanganiStatus"
+                       class="mb-1 block text-sm font-semibold">
+                    Ubah status laporan
+                </label>
+                <select name="status" id="tanganiStatus"
+                        class="w-full rounded-md border border-black/20 bg-white px-3 py-2 text-sm focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-600/30">
+                    <option value="dilaporkan">Dilaporkan</option>
+                    <option value="diproses">Diproses</option>
+                    <option value="selesai">Selesai</option>
+                </select>
+            </div>
+
+            <div class="flex justify-end gap-2 border-t border-black/5 pt-4">
+                <button type="button" data-popup-batal
+                        class="rounded-md border border-black/20 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-100">
+                    Batal
+                </button>
+                <button type="submit"
+                        class="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
+                    Simpan status
+                </button>
+            </div>
+        </form>
+
+        <!-- Footer khusus tampilan detail -->
+        <div id="popupFooter"
+             class="flex justify-end border-t border-black/5 p-5">
+            <button type="button" data-popup-batal
+                    class="rounded-md border border-black/20 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-100">
+                Tutup
+            </button>
+        </div>
+
+    </div>
+</div>
 
 <?php require "../footer.php"; ?>
