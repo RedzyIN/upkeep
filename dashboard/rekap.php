@@ -1,4 +1,3 @@
-
 <?php
 require "../init.php";
 require "../data/dummy.php";
@@ -39,22 +38,9 @@ if (
 
 // Ambil data laporan. Filter status, kategori, dan prioritas dikosongkan
 // agar rekap memuat semua status laporan yang boleh dilihat pengguna.
-$filter = [
-    "status" => "",
-    "kategori" => "",
-    "prioritas" => "",
-];
+$daftar = ambilRekap($pdo, $admin, $u["id"], $tanggalMulai, $tanggalAkhir);
 
 // Angka 10000 digunakan agar seluruh data dummy dapat dimuat sekaligus.
-$hasil = dataLaporanList(
-    $u["id"],
-    $admin,
-    $filter,
-    1,
-    10000
-);
-
-$semuaLaporan = $hasil["rows"] ?? [];
 
 // Mendukung format tanggal ISO (Y-m-d), d-m-Y, dan d/m/Y.
 function tanggalUntukRekap($tanggal): ?string
@@ -78,16 +64,6 @@ function tanggalUntukRekap($tanggal): ?string
 }
 
 // Saring berdasarkan periode yang dipilih.
-$daftar = array_values(array_filter(
-    $semuaLaporan,
-    function ($laporan) use ($tanggalMulai, $tanggalAkhir) {
-        $tanggal = tanggalUntukRekap($laporan["tanggal"] ?? "");
-
-        return $tanggal !== null
-            && $tanggal >= $tanggalMulai
-            && $tanggal <= $tanggalAkhir;
-    }
-));
 
 // Hitung statistik.
 $totalLaporan = count($daftar);

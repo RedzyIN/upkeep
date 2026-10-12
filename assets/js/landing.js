@@ -115,7 +115,7 @@ function tampilkanDampak() {
 
 async function muatStatus() {
   try {
-    const respon = await fetch("api-status.php", { cache: "no-store" });
+    const respon = await fetch("status_api.php", { cache: "no-store" });
     dataTerakhir = await respon.json();
     tampilkanStatus(dataTerakhir);
     if (dampakTerlihat) tampilkanDampak();

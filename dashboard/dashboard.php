@@ -6,7 +6,7 @@
 
   $u     = userLogin();
   $admin = isAdmin();
-  $data  = $admin ? dataDashboardAdmin() : dataDashboardUser();   // DUMMY: nanti diganti query database
+  $data  = ambilDashboard($pdo, $admin, $u["id"]);   // query database: includes/data_dashboard.php
 
   $judul      = "Dashboard";
   $pakaiChart = true;
@@ -41,13 +41,6 @@
     </a>
   <?php endif; ?>
 </div>
- 
-<?php if (!$admin && $data["perlu_rating"] > 0): ?>
-<div class="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-  <i data-lucide="star" class="h-5 w-5 shrink-0"></i>
-  <p><?= (int) $data["perlu_rating"] ?> laporanmu sudah selesai dan belum dinilai. <a href="laporan.php?status=selesai" class="font-semibold underline">Beri rating</a></p>
-</div>
-<?php endif; ?>
  
 <!-- ===== Kartu ringkasan ===== -->
 <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -85,7 +78,7 @@
   </section>
   <section class="rounded-xl border border-black/10 bg-white p-5">
     <h3 class="font-semibold">5 Lokasi Paling Sering Dilaporkan</h3>
-    <?php $maks = max(array_column($data["top_lokasi"], 1)); ?>
+    <?php $maks = max(array_column($data["top_lokasi"], 1) ?: [1]); ?>
     <ul class="mt-4 space-y-3">
       <?php foreach ($data["top_lokasi"] as [$lokasi, $jumlah]): ?>
       <li>
@@ -126,7 +119,6 @@
     <h3 class="mb-4 font-semibold">Kinerja Penanganan</h3>
     <dl class="space-y-4 text-sm">
       <div class="flex items-center justify-between"><dt class="text-slate-500">Rata-rata waktu selesai</dt><dd class="text-lg font-bold"><?= str_replace(".", ",", $data["kinerja"]["rata_hari"]) ?> hari</dd></div>
-      <div class="flex items-center justify-between"><dt class="text-slate-500">Rata-rata rating</dt><dd class="text-lg font-bold"><?= str_replace(".", ",", $data["kinerja"]["rating"]) ?> / 5</dd></div>
       <div class="flex items-center justify-between"><dt class="text-slate-500">Laporan terlambat</dt><dd class="text-lg font-bold text-rose-600"><?= (int) $data["kinerja"]["terlambat"] ?></dd></div>
     </dl>
   </section>

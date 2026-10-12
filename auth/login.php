@@ -37,12 +37,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             // Pesan dibuat sama agar tidak membocorkan keberadaan email.
-            if (
-                !$user ||
-                !password_verify($password, $user["password"])
-            ) {
-                $error = "Email atau password salah.";
-            } else {
+            
+                if (
+                    !$user ||
+                    $password !== $user["password"]
+                ) {
+                    $error = "Email atau password salah.";
+                } else {
                 // Buat sesi login dan regenerasi ID sesi.
                 loginUser($user);
 
@@ -68,6 +69,7 @@ require_once "../header.php";
 
 <section class="flex items-center justify-center p-4 sm:p-8">
 <div class="w-full max-w-md rounded-lg border border-black/10 bg-white p-6 shadow-sm sm:p-8">
+    <a href="../index.php" class="text-md text-start text-slate-400">Kembali</a>
     <h2 class="text-2xl font-bold text-center">Log in</h2>
 
     <?php if ($error): ?>
@@ -103,17 +105,6 @@ require_once "../header.php";
         <a href="register.php" class="font-semibold text-red-600 hover:text-red-700">Daftar di sini</a>
     </p>
     </form>
-
-    <!-- Akun demo (hapus blok ini saat dipakai sungguhan) -->
-    <div class="mt-6 border-t border-black/10 pt-5">
-    <p class="text-xs font-semibold uppercase tracking-wide text-black/50">Coba akun demo</p>
-    <div class="mt-3 grid grid-cols-2 gap-2">
-        <button type="button" data-demo-email="admin@kampus.test" data-demo-pass="admin123"
-                class="rounded-md border border-black/20 px-3 py-2 text-sm font-semibold hover:bg-slate-200">Isi sebagai Admin</button>
-        <button type="button" data-demo-email="mahasiswa@kampus.test" data-demo-pass="user123"
-                class="rounded-md border border-black/20 px-3 py-2 text-sm font-semibold hover:bg-slate-200">Isi sebagai User</button>
-    </div>
-    </div>
 </div>
 </section>
 

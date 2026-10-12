@@ -118,18 +118,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
 
             if ($error === "") {
-                // 10. Hash password sebelum disimpan.
-                $hashPassword = password_hash(
-                    $password,
-                    PASSWORD_DEFAULT
-                );
 
-                if ($hashPassword === false) {
-                    throw new RuntimeException("Gagal mengamankan password.");
-                }
-
-                // 11. Simpan akun baru dengan role user.
-                // Role tidak diambil dari input pengguna.
                 $stmt = $pdo->prepare(
                     "INSERT INTO users
                         (nama, email, password, role, tipe, no_induk, unit)
@@ -140,7 +129,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $stmt->execute([
                     "nama"     => $nama,
                     "email"    => $email,
-                    "password" => $hashPassword,
+                    "password" => $password,
                     "tipe"     => $tipe,
                     "no_induk" => $noInduk,
                     "unit"     => $unit,
@@ -186,6 +175,7 @@ require_once "../header.php";
 <div class="flex min-h-screen items-center justify-center bg-slate-200 sm:p-6">
     <div class="flex min-h-screen w-full flex-col justify-center bg-white p-6 sm:min-h-0 sm:max-w-xl sm:rounded-lg sm:border sm:border-black/10 sm:p-8 sm:shadow-sm">
 
+    <a href="../index.php" class="text-md text-start text-slate-400">Kembali</a>
     <h2 class="text-2xl font-bold text-center">Registrasi Akun</h2>
 
     <?php if ($error): ?>
@@ -263,7 +253,7 @@ require_once "../header.php";
     </div>
 
     <div>
-        <label class="mb-1.5 block text-sm font-semibold">SK/Lampiran Pendukung</label>
+        <label class="mb-1.5 block text-sm font-semibold">KTM/SK/Lampiran Pendukung</label>
     
         <div class="w-full" data-file-field>
             <label for="lampiran" class="group relative flex h-36 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 transition-all hover:bg-gray-100/80">

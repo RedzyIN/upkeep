@@ -1,8 +1,8 @@
 -- Upkeep Database
 -- Cara pakai: import file ini lewat phpMyAdmin (tab Import)
 
-CREATE DATABASE IF NOT EXISTS db_lapor_fasilitas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE db_lapor_fasilitas;
+CREATE DATABASE IF NOT EXISTS db_upkeep CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE db_upkeep;
 
 DROP TABLE IF EXISTS riwayat_status;
 DROP TABLE IF EXISTS laporan;

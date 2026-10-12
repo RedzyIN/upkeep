@@ -1,4 +1,3 @@
-
 document.addEventListener("DOMContentLoaded", function () {
     const tabel = document.getElementById("tabelRekap");
     const tombolExcel = document.getElementById("btnExportExcel");
@@ -50,7 +49,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         try {
             const workbook = XLSX.utils.table_to_book(tabel, {
-                sheet: "Rekap Laporan"
+                sheet: "Rekap Laporan",
+                raw: true      // jangan menebak tipe data: tanggal tetap teks seperti di tabel
             });
 
             XLSX.writeFile(workbook, namaFile("xlsx"));

@@ -14,6 +14,7 @@
   <?php endif; ?>
 
   <script src="<?= BASE_URL ?>assets/js/app.js"></script>
+  <script src="<?= BASE_URL ?>assets/js/transisi.js"></script>
   <?php foreach ($jsHalaman ?? [] as $js): ?>
   <script src="<?= BASE_URL . e($js) ?>"></script>
   <?php endforeach; ?>
